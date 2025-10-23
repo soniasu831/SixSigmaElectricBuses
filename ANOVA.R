@@ -9,6 +9,9 @@
 #' @param alpha Significance threshold (default 0.05)
 #' @return List with ANOVA model, p-value, Shapiro-Wilk and Levene tests
 #' @export
+
+# install.packages(c("dplyr", "car", "ggplot2"))
+
 run_single_anova <- function(df, response_col = "base_price", factor_col, alpha = 0.05) {
   
   library(dplyr)
@@ -80,23 +83,27 @@ run_single_anova <- function(df, response_col = "base_price", factor_col, alpha 
   ))
 }
 
+# ===================================================== 
+# Usage (with your uploaded data) 
+# =====================================================
+df <- read.csv("buses.csv")
+
 # Run ANOVA just for the 'state' column
-results <- run_single_anova(df, response_col = "base_price", factor_col = "state")
+state_results <- run_single_anova(df, response_col = "base_price", factor_col = "state")
 
 # Run ANOVA just for each column
-results <- run_single_anova(df, response_col = "base_price", factor_col = "source_type")
+source_results <- run_single_anova(df, response_col = "base_price", factor_col = "source_type")
 
-results <- run_single_anova(df, response_col = "base_price", factor_col = "purchase_year")
+purchasey_results <- run_single_anova(df, response_col = "base_price", factor_col = "purchase_year")
 
-results <- run_single_anova(df, response_col = "base_price", factor_col = "bus_manufacturer")
+manufacturer_results <- run_single_anova(df, response_col = "base_price", factor_col = "bus_manufacturer")
 
-results <- run_single_anova(df, response_col = "base_price", factor_col = "bus_model")
+model_results <- run_single_anova(df, response_col = "base_price", factor_col = "bus_model")
 
-results <- run_single_anova(df, response_col = "base_price", factor_col = "bus_type")
+type_results <- run_single_anova(df, response_col = "base_price", factor_col = "bus_type")
 
-results <- run_single_anova(df, response_col = "base_price", factor_col = "seating_capacity")
+seating_results <- run_single_anova(df, response_col = "base_price", factor_col = "seating_capacity")
 
-results <- run_single_anova(df, response_col = "base_price", factor_col = "special_needs_bus")
+specialneeds_results <- run_single_anova(df, response_col = "base_price", factor_col = "special_needs_bus")
 
-results <- run_single_anova(df, response_col = "base_price", factor_col = "vehicle_dealer")
-
+dealer_results <- run_single_anova(df, response_col = "base_price", factor_col = "vehicle_dealer")
