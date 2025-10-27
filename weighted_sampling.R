@@ -7,6 +7,8 @@ library(janitor) # easy crosstabulation
 source = "buses.csv" 
 dat = source %>% read_csv()
 
+source("prelim_results_SPC.R")
+
 # convert from excel serial dates if date is available
 dat = dat %>% mutate(
   date_published_or_updated = date_published_or_updated %>% as.numeric() %>% as.Date(origin = "1899-12-30")
@@ -65,3 +67,70 @@ tabyl(output$bus_manufacturer)
 #               Micro Bird  1 0.03448276    0.03571429
 #       Thomas Built Buses 18 0.62068966    0.64285714
 #                     <NA>  1 0.03448276            NA
+
+
+
+# %%
+
+data = dat[which(dat$state == "WA"), ] # only the data from WA
+# add a column that is per seat 
+data = data %>% mutate(
+  price_per_seat = base_price / seating_capacity
+) 
+sample_size = dim(data)[1] # keep total number of buses the same
+rows = c(12, 15, 21, 24, 26, 26)
+
+output1 = getSamp(data, sample_size, rows, rep(1, 6))
+output2 = getSamp(data, sample_size, rows, rep(2, 6))
+
+tabyl(data$bus_manufacturer) # BlueBird  22%
+tabyl(output1$bus_manufacturer) # BlueBird 33%
+tabyl(output2$bus_manufacturer) # BlueBird 63%
+
+
+
+
+
+# %%
+g1 = bus_spc_avg(data$bus_manufacturer, data$price_per_seat, 
+            xlab = "Manufacturer", ylab = "Bus Price per Seat ($/seat)", 
+            label_width = 60, label_vjust = 2.75)
+
+g2 = bus_spc_avg(output1$bus_manufacturer, output1$price_per_seat, 
+            xlab = "Manufacturer", ylab = "Bus Price per Seat ($/seat)", 
+            label_width = 60, label_vjust = 4)
+
+g1
+
+g2
+
+
+# %%
+percent = c()
+average_price = c()
+for (i in c(1:100)){
+  output = getSamp(data, sample_size, rows, rep(1, 6))
+  average_price[i] = get_stat_t(output$bus_manufacturer, output$price_per_seat)$xbbar
+  percent[i] = 100*length(which(output$bus_manufacturer == "Blue Bird")) / length(output$bus_manufacturer)
+}
+for (i in c(101:200)){
+  output = getSamp(data, sample_size, rows, rep(2, 6))
+  average_price[i] = get_stat_t(output$bus_manufacturer, output$price_per_seat)$xbbar
+  percent[i] = 100*length(which(output$bus_manufacturer == "Blue Bird")) / length(output$bus_manufacturer)
+}
+for (i in c(201:300)){
+  output = getSamp(data, sample_size, rows, rep(3, 6))
+  average_price[i] = get_stat_t(output$bus_manufacturer, output$price_per_seat)$xbbar
+  percent[i] = 100*length(which(output$bus_manufacturer == "Blue Bird")) / length(output$bus_manufacturer)
+}
+    
+ggplot()+
+  geom_point(mapping = aes(x = percent, y = average_price), size = 1) + 
+  labs(x = "percentage of BlueBird", y = "average price per seat in WA") 
+
+percentage_vs_price = tibble(
+  percent = percent,
+  average_price = average_price
+)
+
+ggprocess(x = percent, y = average_price, xlab = "Percentage of Blue Bird in WA", ylab = "Average Bus Price per Seat in WA ($/seat)")

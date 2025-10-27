@@ -268,6 +268,17 @@ bus_spc_test_avg(dat$bus_manufacturer, dat$base_price)
 #   ic bus
 
 
+dat_a = dat %>% mutate(
+  price_per_seat = base_price / seating_capacity
+) 
+
+dat_a <- dat_a[!is.na(dat_a$price_per_seat), ]
+
+# bus price per seat vs manufacturer
+bus_spc_avg(dat_a$bus_manufacturer, dat_a$price_per_seat,
+            xlab = "Bus Manufacturer", ylab = "Bus Price Per Seat ($/seat)", 
+            label_width = 100, label_vjust = 2.75)
+
 # price vs dealer
 bus_spc_avg(dat$vehicle_dealer, dat$base_price, 
             xlab = "Dealer", ylab = "Bus Price ($)", 
@@ -276,6 +287,15 @@ bus_spc_avg(dat$vehicle_dealer, dat$base_price,
 bus_spc_test_avg(dat$vehicle_dealer, dat$base_price)
 
 
+# price vs seating capacity
+bus_spc_avg(dat$seating_capacity, dat$base_price, 
+            xlab = "Seating Capacity", ylab = "Bus Price ($)", 
+            label_width = 100, label_vjust = 1, numeric = TRUE)
+
+# price vs date
+bus_spc_avg(dat$date_published_or_updated, dat$base_price, 
+            xlab = "Date", ylab = "Bus Price ($)", 
+            label_width = 100, label_vjust = 1, numeric = TRUE)
 
 
 # %% moving range charts #####
