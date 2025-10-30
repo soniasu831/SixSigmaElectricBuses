@@ -86,7 +86,7 @@ run_single_anova <- function(df, response_col = "base_price", factor_col, alpha 
 # ===================================================== 
 # Usage (with uploaded data) 
 # =====================================================
-df <- read.csv("buses.csv")
+df <- read.csv("buses_with_price_per_seat_and_converted_dates.csv")
 
 # Run ANOVA just for the 'state' column
 state_results <- run_single_anova(df, response_col = "base_price", factor_col = "state")
@@ -107,3 +107,19 @@ seating_results <- run_single_anova(df, response_col = "base_price", factor_col 
 specialneeds_results <- run_single_anova(df, response_col = "base_price", factor_col = "special_needs_bus")
 
 dealer_results <- run_single_anova(df, response_col = "base_price", factor_col = "vehicle_dealer")
+
+price_per_seat_results <-run_single_anova(df, response_col = "base_price", factor_col = "price_per_seat")
+
+# # Split the data by state and then run ANOVA by another variable
+# state_anova_results <- df %>%
+#   split(.$state) %>%
+#   lapply(function(sub_df) {
+#     cat("\n\n=============================\n")
+#     cat("State:", unique(sub_df$state), "\n")
+#     cat("=============================\n")
+#     run_single_anova(
+#       sub_df,
+#       response_col = "base_price",
+#       factor_col = "bus_manufacturer"
+#     )
+#   })
