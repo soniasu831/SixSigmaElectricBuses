@@ -154,6 +154,6 @@ dat_A$price_per_seat %>% mean()
 dat_D$price_per_seat %>% mean()
 dat_C$price_per_seat %>% mean()
 
-[1] 12390.65
-[1] 4966.584
-[1] 5541.17
+# [1] 12390.65
+# [1] 4966.584
+# [1] 5541.17
