@@ -184,3 +184,43 @@ save_table_as_image(results_table_4, "ANOVA by State within Year", "anova_table_
 save_table_as_image(results_table_5, "ANOVA by Manufacturer within Year", "anova_table_5.png")
 save_table_as_image(results_table_6, "ANOVA by Bus Type within State", "anova_table_6.png")
 save_table_as_image(results_table_7, "ANOVA by Price/Seat for Bus Manufacturer within type", "anova_table_7.png")
+
+# TUKEY POST HOC
+# Assuming you already have your data frame `df`
+# and you grouped by special_needs_bus, factor = bus_type, response = base_price
+
+library(dplyr)
+
+# Identify groups where ANOVA was significant
+significant_groups <- results_table_2 %>%
+  filter(Significant == TRUE) %>%
+  pull(Group)
+
+# Loop through significant groups and run Tukey HSD
+posthoc_results <- list()
+
+for (g in significant_groups) {
+  sub_df <- df %>% filter(bus_type == g)
+  
+  # Fit ANOVA model
+  model <- aov(base_price ~ state, data = sub_df)
+  
+  # Tukey HSD post-hoc test
+  tukey_out <- TukeyHSD(model)
+  
+  posthoc_results[[g]] <- tukey_out
+}
+
+# View results for each group
+posthoc_results
+
+library(broom)
+
+tukey_table <- bind_rows(
+  lapply(names(posthoc_results), function(g) {
+    tidy(posthoc_results[[g]]) %>%
+      mutate(Group = g)
+  })
+)
+
+print(tukey_table) %>% print(n=120)
