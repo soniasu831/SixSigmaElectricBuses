@@ -161,7 +161,7 @@ library(gridExtra)
 save_table_as_image <- function(df, title, filename) {
   
   # Open a PNG device with larger width
-  png(filename, width = 5000, height = 1200, res = 300)  # Increased width and resolution
+  png(filename, width = 5000, height = 1200, res = 600)  # Increased width and resolution
   
   # Create a table grob
   table_grob <- tableGrob(df, rows = NULL)
@@ -170,10 +170,10 @@ save_table_as_image <- function(df, title, filename) {
   title_grob <- textGrob(title, gp = gpar(fontsize = 16, fontface = "bold"))
   
   # Combine title and table
-  combined <- arrangeGrob(title_grob, table_grob, ncol = 1, heights = c(0.2, 1))
+  combined <- arrangeGrob(title_grob, table_grob, ncol = 1, heights = c(0.05, 1))
   
   # Save as PNG
-  ggsave(filename, combined, width = 8, height = 25)
+  ggsave(filename, combined, width = 8, height = 38)
 }
 
 # Example usage for your results
@@ -194,7 +194,7 @@ library(dplyr)
 
 # Identify groups where ANOVA was significant
 significant_groups <- results_table_2 %>%
-  filter(Significant == FALSE) %>%
+  filter(Significant == TRUE) %>%
   pull(Group)
 
 # Loop through significant groups and run Tukey HSD
@@ -224,4 +224,4 @@ tukey_table <- bind_rows(
   })
 )
 
-print(tukey_table) %>% print(n = 73)
+print(tukey_table) %>% print(n = 120)
