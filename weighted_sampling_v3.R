@@ -115,82 +115,85 @@ getBoot = function(dat, boot_size, type, manuf, weights = NA){
   return(boot_stat)
 }
 
-# %% scatter plot with trendline
-
-# type = "Type A"
-# manuf = "Lightning eMotors/Collins Bus"
-# type = "Type D"
-# manuf = "GreenPower"
-type = "Type C"
-manuf = "Lion Electric"
-
-b1 = getBoot(dat, boot_size = 10, type, manuf, seq(from = .05, to = .95, by = 0.05))
-
-b1 %>% ggplot(mapping = aes(x = percentage, y = average_pps))+
-  geom_point() +
-  labs(x = paste("Percentage of", manuf, "Buses"), 
-       y = "Average Price per Seat ($/seat)",
-       subtitle = str_wrap(paste("Average Price Per Seat vs Percentage Of", manuf, "for", type, "Buses" ), width = 50)
-  )  +
-  theme_classic() +
-  geom_smooth(method = "lm", se = FALSE) # se = FALSE removes extra stuff
-
-# b1 %>% lm(formula = average_pps ~ percentage) %>% summary()
-
-
-# %% simulate data and create box plots
-
-b2 = getBoot(dat, boot_size = 100, type, manuf, c(0.2, 0.8))
-
-b2 %>% ggplot()+
-  geom_boxplot(mapping = aes(x = w, y = average_pps, group = w)) +
-  labs(x = paste("Percentage of", manuf, "Buses"), 
-       y = "Average Bus Price per Seat ($/seat)",
-       subtitle = str_wrap(paste("Average Price Per Seat vs Percentage Of", manuf, "for", type, "Buses" ), width = 50)
-  )  +
-  theme_classic()
-
-# %% calculate confidence intervals 
 
 
 
-# type = "Type C"
-# manuf = "Lion Electric"
-# would need to go up to 60
+# %% getScatter function #####
+getScatter = function(dat, boot_size, type, manuf, weights){
 
+  b = getBoot(dat, boot_size, type, manuf, weights)
+
+  fit = b %>% lm(formula = average_pps ~ percentage)
+  eq <- substitute(
+    italic(y) == a + b %.% italic(x)*","~~italic(R)^2~"="~r2,
+    list(
+      a = format(as.numeric(coef(fit)[1]), digits = 2),
+      b = format(as.numeric(coef(fit)[2]), digits = 2),
+      r2 = format(as.numeric(summary(fit)$r.squared), digits = 3)
+    )
+  )
+
+  g = b %>% ggplot(mapping = aes(x = percentage, y = average_pps))+
+    geom_point() +
+    labs(x = paste("Percentage of", manuf, "Buses"), 
+        y = "Average Price per Seat ($/seat)",
+        subtitle = str_wrap(paste("Average Price Per Seat vs Percentage Of", manuf, "for", type, "Buses" ))
+    )  +
+    theme_classic() +
+    geom_smooth(method = "lm", se = FALSE) + # se = FALSE removes extra stuff 
+    geom_text(
+      x = Inf, y = Inf,
+      label = as.character(as.expression(eq)),
+      hjust = 1.1, vjust = 1,
+      parse = TRUE
+    )
+
+  return(g)
+}
+
+# %% generate scatter plots #####
+
+set.seed(50)
+
+boot_size = 5
+weights = seq(from = .05, to = .95, by = 0.01)
+
+g_a = getScatter(dat, boot_size, "Type A", "Lightning eMotors/Collins Bus", weights)
+g_c = getScatter(dat, boot_size, "Type C", "Lion Electric", weights)
+g_d = getScatter(dat, boot_size, "Type D", "GreenPower", weights)
+
+ggsave('boot_bus_type_a.png', plot = g_a, width = 6.5, height = 4, dpi = 300)
+ggsave('boot_bus_type_c.png', plot = g_c, width = 6.5, height = 4, dpi = 300)
+ggsave('boot_bus_type_d.png', plot = g_d, width = 6.5, height = 4, dpi = 300)
+
+# %% getCI function #####
+
+getCI = function(dat, boot_size, type, manuf, weight, alpha){
+
+  # bootstrap original dataset
+  b_nom = getBoot(dat, boot_size = boot_size, type, manuf)
+  # bootstrap with change
+  b_x = getBoot(dat, boot_size = boot_size, type, manuf, weights = weight)
+
+  b_diff = b_x$average_pps - b_nom$average_pps
+  
+  delta = tibble(
+    mean = mean(b_diff),
+    lower = quantile(b_diff, probs = alpha),
+    upper = quantile(b_diff, probs = 1-alpha)
+  )
+
+  return(delta)
+}
+
+# %% calculate confidence intervals #####
+
+set.seed(50)
+
+alpha = 0.05 # 90% confidence interval
 boot_size = 1000
-weight = 0.90
 
-type = "Type D"
-manuf = "GreenPower"
-# would need to go up to 90%
+a = getCI(dat, boot_size, "Type A", "Lightning eMotors/Collins Bus", 0.3, alpha)
+c = getCI(dat, boot_size, "Type C", "Lion Electric", 0.7, alpha)
+d = getCI(dat, boot_size, "Type D", "GreenPower", 0.9, alpha)
 
-# type = "Type A"
-# manuf = "Lightning eMotors/Collins Bus"
-# only need to go up to 30% to have a statistically significant change (90% confidence)
-
-# bootstrap original dataset
-b_nom = getBoot(dat, boot_size = boot_size, type, manuf)
-# bootstrap with change
-b_x = getBoot(dat, boot_size = boot_size, type, manuf, weights = weight)
-
-b_diff = b_x$average_pps - b_nom$average_pps
-
-# the se of the sampling distribution is the SD
-alpha = 0.05
-delta = tibble(
-  mean = mean(b_diff),
-  lower = quantile(b_diff, probs = alpha),
-  upper = quantile(b_diff, probs = 1-alpha)
-)
-
-delta
-
-# %%
-
-dat %>% tabyl(bus_manufacturer)
-# no blue bird in ME, OH, SC, VA
-# SC has NAs for seating
-
-
-dat %>% tabyl(special_needs_bus)
