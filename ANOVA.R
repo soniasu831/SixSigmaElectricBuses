@@ -189,3 +189,4 @@ price_per_seat_results <-run_single_anova(df, response_col = "base_price", facto
 # 
 # save_anova_summary_image(model, shapiro_p, levene_p, significant_msg,
 #                          "ANOVA Summary: State", "anova_state_summary.png")
+
