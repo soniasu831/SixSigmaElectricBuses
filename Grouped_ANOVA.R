@@ -161,7 +161,7 @@ library(gridExtra)
 save_table_as_image <- function(df, title, filename) {
   
   # Open a PNG device with larger width
-  png(filename, width = 5000, height = 1200, res = 150)  # Increased width and resolution
+  png(filename, width = 5000, height = 1200, res = 300)  # Increased width and resolution
   
   # Create a table grob
   table_grob <- tableGrob(df, rows = NULL)
@@ -173,7 +173,7 @@ save_table_as_image <- function(df, title, filename) {
   combined <- arrangeGrob(title_grob, table_grob, ncol = 1, heights = c(0.2, 1))
   
   # Save as PNG
-  ggsave(filename, combined, width = 15, height = 4)
+  ggsave(filename, combined, width = 8, height = 25)
 }
 
 # Example usage for your results
@@ -184,6 +184,7 @@ save_table_as_image(results_table_4, "ANOVA by State within Year", "anova_table_
 save_table_as_image(results_table_5, "ANOVA by Manufacturer within Year", "anova_table_5.png")
 save_table_as_image(results_table_6, "ANOVA by Bus Type within State", "anova_table_6.png")
 save_table_as_image(results_table_7, "ANOVA by Price/Seat for Bus Manufacturer within type", "anova_table_7.png")
+save_table_as_image(tukey_table, "Tukey Post-hoc test of Significant Bus Types", "Tukey_table.png")
 
 # TUKEY POST HOC
 # Assuming you already have your data frame `df`
@@ -193,7 +194,7 @@ library(dplyr)
 
 # Identify groups where ANOVA was significant
 significant_groups <- results_table_2 %>%
-  filter(Significant == TRUE) %>%
+  filter(Significant == FALSE) %>%
   pull(Group)
 
 # Loop through significant groups and run Tukey HSD
@@ -223,4 +224,4 @@ tukey_table <- bind_rows(
   })
 )
 
-print(tukey_table) %>% print(n=120)
+print(tukey_table) %>% print(n = 73)
