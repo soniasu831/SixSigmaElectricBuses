@@ -79,6 +79,50 @@ ui <- navbarPage(
     )
   ),
 
+  ## anova #####
+  tabPanel(
+    title = "ANOVA",
+    div(
+      style = "padding-left: 15px",
+      tabsetPanel(
+        tabPanel(
+          "Single ANOVA",
+          sidebarLayout(
+            div(
+              style = "padding-top: 15px",
+              sidebarPanel(
+                # select factor col
+                selectInput(
+                  inputId = "factor_col",
+                  label = "Select a Category:",
+                  choices = c(
+                    "Purchase Year",
+                    "Bus Manufacturer",
+                    "Bus Model",
+                    "Special Needs",
+                    "State",
+                    "Vehicle Dealer"
+                  ),
+                  selected = "State"
+                ),
+                p("Our threshold for significant differences is 𝝰 = 0.05. When the p-value is greater than 0.05, there is no significant difference detected. When p value < 0.05, we know that at least one of the group means differs, but it does not specify which one.")
+              )
+            ),
+            mainPanel(
+              h2("Single ANOVA Charts"),
+              p("ANOVAs can quickly identify which variables show statistically significant differences in the means of three or more independent groups, and which variables differ in terms of bus contract prices."),
+              plotOutput("single_anova")
+            )
+          )
+        ),
+
+        tabPanel(
+          "Grouped ANOVA",
+        )
+      )
+    )
+  ),
+
   ## spc #####
   tabPanel(
     title = "SPC Charts",
@@ -134,45 +178,29 @@ ui <- navbarPage(
   ## regression #####
   tabPanel(
     title = "Regression",
-    div(
-      style = "padding-left: 15px",
-      tabsetPanel(
-        
-        ### bivariate regression #####
-        tabPanel(
-          "Bivariate Regression",
-          
+    fluidPage(
+      column(
+        width = 5, # left column (4/12 of the width)
+
+        h2("Multivariate Regression"),
+
+        # select bus type
+        selectInput(
+          inputId = "bus_type_reg",
+          label = "Select a Bus Type:",
+          choices = c(
+            "Type A",
+            "Type C",
+            "Type D"
+          ),
+          selected = "Type C"
         ),
 
-        ### html regs #####
-        tabPanel(
-          "Multivariate Regression",
-          fluidRow(
-            column(
-              width = 4, # left column (4/12 of the width)
-
-              h2("Multivariate Regression"),
-
-              # select bus type
-              selectInput(
-                inputId = "bus_type_reg",
-                label = "Select a Bus Type:",
-                choices = c(
-                  "Type A",
-                  "Type C",
-                  "Type D"
-                ),
-                selected = "Type C"
-              ),
-
-              p("To quantify the impacts of different variables on bus pricing, regression models can be developed. By comparing beta coefficients, the team will be able to discern the direction and magnitude of the effect of different variables on bus pricing. Associated p-values can be used to determine the statistical significance of the identified relationships."),
-            ),
-            column(
-              width = 8,
-              uiOutput("html_reg")
-            )
-          )
-        )
+        p("To quantify the impacts of different variables on bus pricing, regression models can be developed. By comparing beta coefficients, the team will be able to discern the direction and magnitude of the effect of different variables on bus pricing. Associated p-values can be used to determine the statistical significance of the identified relationships."),
+      ),
+      column(
+        width = 7,
+        uiOutput("html_reg")
       )
     )
   ),
@@ -250,6 +278,33 @@ server <- function(input, output, session) {
   ## bus data table #####
   output$bus_data = renderDT({
     datatable(dat, options = list(scrollX = TRUE))
+  })
+
+  ## single anova #####
+  output$single_anova <- renderPlot({
+
+    # x variable
+    if (input$factor_col == "Purchase Year"){
+      x = "purchase_year"
+    } else if (input$factor_col == "Bus Manufacturer"){
+      x = "bus_manufacturer"
+    } else if (input$factor_col == "Bus Model"){
+      x = "bus_model"
+    } else if (input$factor_col == "Special Needs"){
+      x = "special_needs_bus"
+    } else if (input$factor_col == "State"){
+      x = "state"
+    } else if (input$factor_col == "Vehicle Dealer"){
+      x = "vehicle_dealer"
+    }
+
+    run_single_anova(dat, 
+      response_col = "base_price", factor_col = x,
+      response_lab = "Base Price", factor_lab = input$factor_col
+    )
+
+
+
   })
 
   ## spc charts #####

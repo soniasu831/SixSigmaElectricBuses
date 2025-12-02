@@ -240,3 +240,142 @@ getScatter = function(dat, boot_size, type, manuf, weights){
 
   return(g)
 }
+
+# %% single anova function #####
+
+library(dplyr)
+library(ggplot2)
+library(car)
+
+run_single_anova <- function(df, response_col = "base_price", factor_col, response_lab = response_col, factor_lab = factor_col, alpha = 0.05) {
+  
+  # Check columns exist
+  if (!response_col %in% names(df)) stop("Response column not found!")
+  if (!factor_col %in% names(df)) stop("Factor column not found!")
+  
+  # Convert factor column to factor if needed
+  df[[factor_col]] <- as.factor(df[[factor_col]])
+  
+  # Skip if only one level
+  if (nlevels(df[[factor_col]]) < 2) {
+    stop("Factor column must have at least 2 levels.")
+  }
+  
+  # Build formula
+  formula <- as.formula(paste("`", response_col, "` ~ `", factor_col, "`", sep = ""))
+  
+  # Fit ANOVA
+  model <- aov(formula, data = df)
+  summary_out <- summary(model)
+  print(summary_out)
+  
+  # Extract p-value
+  p_val <- summary_out[[1]][["Pr(>F)"]][1]
+  
+  # Assumption tests
+  shapiro_p <- shapiro.test(residuals(model))$p.value
+  levene_p <- car::leveneTest(formula, data = df)[["Pr(>F)"]][1]
+  
+  cat(sprintf("Shapiro-Wilk p = %.4f\n", shapiro_p))
+  cat(sprintf("Levene p = %.4f\n", levene_p))
+  
+  # Tukey HSD if significant
+  if (p_val < alpha) {
+    cat("✅ Significant difference detected!\n")
+    print(TukeyHSD(model))
+  } else {
+    cat("❌ No significant difference detected.\n")
+  }
+  
+  # Boxplot
+  p <- ggplot(df, aes_string(x = factor_col, y = response_col, fill = factor_col)) +
+    geom_boxplot(alpha = 0.7, outlier.color = "red") +
+    theme_minimal(base_size = 13) +
+    labs(
+      title = paste(response_lab, "by", factor_lab),
+      subtitle = paste("ANOVA p =", round(p_val, 4)),
+      x = factor_lab,
+      y = response_lab
+    ) +
+    theme(
+      legend.position = "none",
+      axis.text.x = element_text(angle = -45, hjust = 0, vjust = 1),
+      plot.margin = margin(t = 15, r = 120, b = 25, l = 15)
+    )
+  
+  return(p)
+}
+
+# %% grouped anova function #####
+run_grouped_anova <- function(df, group_by, factor_col, response_col = "base_price", alpha = 0.05) {
+  
+  library(dplyr)
+  library(car)
+  
+  # --- Input checks --------------------------------------------------
+  if (!all(c(group_by, factor_col, response_col) %in% names(df))) {
+    stop("One or more specified columns not found in dataset.")
+  }
+  
+  df[[group_by]] <- as.factor(df[[group_by]])
+  df[[factor_col]] <- as.factor(df[[factor_col]])
+  
+  grouped_data <- split(df, df[[group_by]])
+  
+  results <- data.frame(
+    Group = character(),
+    DF_Factor = numeric(),
+    DF_Residuals = numeric(),
+    F_value = numeric(),
+    P_value = numeric(),
+    Shapiro_p = numeric(),
+    Levene_p = numeric(),
+    Significant = logical(),
+    stringsAsFactors = FALSE
+  )
+  
+  for (g in names(grouped_data)) {
+    sub_df <- grouped_data[[g]]
+    
+    # Skip small groups or single-level factors
+    if (nrow(sub_df) < 5 || nlevels(sub_df[[factor_col]]) < 3) {
+      next
+    }
+    
+    formula <- as.formula(paste("`", response_col, "` ~ `", factor_col, "`", sep = ""))
+    
+    model <- tryCatch(aov(formula, data = sub_df), error = function(e) NULL)
+    if (is.null(model)) next
+    
+    summary_out <- tryCatch(summary(model)[[1]], error = function(e) NULL)
+    if (is.null(summary_out) || !"Pr(>F)" %in% names(summary_out)) next
+    
+    # Extract safe statistics
+    p_val <- as.numeric(summary_out[1, "Pr(>F)"])
+    f_val <- as.numeric(summary_out[1, "F value"])
+    df_factor <- as.numeric(summary_out[1, "Df"])
+    df_res <- as.numeric(summary_out["Residuals", "Df"])
+    
+    shapiro_p <- tryCatch(shapiro.test(residuals(model))$p.value, error = function(e) NA)
+    levene_p <- tryCatch(leveneTest(formula, data = sub_df)[["Pr(>F)"]][1], error = function(e) NA)
+    
+    results <- rbind(results, data.frame(
+      Group = g,
+      DF_Factor = df_factor,
+      DF_Residuals = df_res,
+      F_value = f_val,
+      P_value = p_val,
+      Shapiro_p = shapiro_p,
+      Levene_p = levene_p,
+      Significant = !is.na(p_val) && p_val < alpha,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  results <- results %>%
+    arrange(P_value) %>%
+    mutate(Significance = ifelse(Significant, "✅ Significant", "❌ Not significant"))
+  
+  print(results)
+  invisible(results)
+}
