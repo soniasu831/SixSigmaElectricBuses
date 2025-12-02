@@ -14,8 +14,7 @@ library(bslib)
 library(readr) # read_csv
 library(DT) # interactive data table
 
-# source("weighted_sampling.R")
-source("dashboard/dashboard_funcs.R")
+source("dashboard_funcs.R")
 
 dat = read_csv("buses_with_price_per_seat_and_converted_dates.csv")
 
@@ -318,11 +317,11 @@ server <- function(input, output, session) {
 
     # bus type
     if (input$bus_type_reg == "Type A"){
-      chunk = "/Users/louise/Documents/Cornell/Six Sigma/sonia github/sixsigma/regression_type_a_sci.html"
+      chunk = "regression_type_a_sci.html"
     } else if (input$bus_type_reg == "Type C"){
-      chunk = "/Users/louise/Documents/Cornell/Six Sigma/sonia github/sixsigma/regression_type_c_sci.html"
+      chunk = "regression_type_c_sci.html"
     } else {
-      chunk = "/Users/louise/Documents/Cornell/Six Sigma/sonia github/sixsigma/regression_type_d_sci.html"
+      chunk = "regression_type_d_sci.html"
     }
 
     includeHTML(chunk)
