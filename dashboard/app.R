@@ -99,18 +99,22 @@ ui <- navbarPage(
                     "Purchase Year",
                     "Bus Manufacturer",
                     "Bus Model",
+                    "Bus Type",
                     "Special Needs",
                     "State",
                     "Vehicle Dealer"
                   ),
                   selected = "State"
                 ),
-                p("Our threshold for significant differences is 𝝰 = 0.05. When the p-value is greater than 0.05, there is no significant difference detected. When p value < 0.05, we know that at least one of the group means differs, but it does not specify which one.")
+                h3("How to interpret:"),
+                p("A significant one-way ANOVA result (p < 0.05) indicates that at least one group mean differs from the others. A non-significant p-value suggests no evidence of meaningful price differences across the tested categories."),
+                p("P-value < 0.05 → The categorical factor has a statistically significant effect on the bus base price."),
+                p("P-value ≥ 0.05 → No evidence of the category having a meaningful effect on bus base price.")
               )
             ),
             mainPanel(
               h2("Single ANOVA Charts"),
-              p("ANOVAs can quickly identify which variables show statistically significant differences in the means of three or more independent groups, and which variables differ in terms of bus contract prices."),
+              p("One-way Analysis of Variance (ANOVA) tests whether the mean bus prices differed across levels of a single categorical variable (e.g., state, bus type, manufacturer). For each factor, the response variable (base_price) was modeled as a function of the categorical groups. ANOVA compares the variability between group means to the variability within groups to determine whether any observed differences exceed what would be expected by random variation alone. Further post-hoc tests can be run to determine which groups specifically differed from one another."),
               plotOutput("single_anova")
             )
           )
@@ -118,7 +122,37 @@ ui <- navbarPage(
 
         tabPanel(
           "Grouped ANOVA",
-        )
+          sidebarLayout(
+            div(
+              style = "padding-top: 15px",
+              sidebarPanel(
+                # select factor col
+                selectInput(
+                  inputId = "factor_col_g",
+                  label = "Select a Category:",
+                  choices = c(
+                    "Purchase Year",
+                    "Bus Manufacturer",
+                    "Bus Model",
+                    "Special Needs",
+                    "State",
+                    "Vehicle Dealer"
+                  ),
+                  selected = "State"
+                ),
+                h3("How to interpret:"),
+                p("A significant one-way ANOVA result (p < 0.05) indicates that at least one group mean differs from the others. A non-significant p-value suggests no evidence of meaningful price differences across the tested categories."),
+                p("P-value < 0.05 → The categorical factor has a statistically significant effect on the bus base price."),
+                p("P-value ≥ 0.05 → No evidence of the category having a meaningful effect on bus base price.")
+              )
+            ),
+            mainPanel(
+              h2("Grouped ANOVA Charts"),
+              p("The dataset was first split according to a grouping variable (such as bus type), and a separate one-way ANOVA was conducted within each subgroup. For every subgroup, the model tested whether mean differences across levels of the factor were larger than would be expected by random variation."),
+              plotOutput("grouped_anova")
+            )
+          )
+        ),
       )
     )
   ),
@@ -215,7 +249,7 @@ ui <- navbarPage(
         ### methodology #####
         tabPanel(
           "Methodology",
-          h3("Bootstrapping Methodology"),
+          h2("Bootstrapping Methodology"),
           p("Bootstrapping is a statistical method that involves resampling a given dataset to create simulated samples. Performing this technique multiple times and evaluating descriptive statistics for a dataset can yield insights into the sampling distribution of a statistic of interest, and can also be used to simulate what the data might look like under different scenarios. In this investigation, the team employed bootstrapping simulations to assess the impact of various purchasing strategies on the costs associated with school bus procurement."),
           p("In particular, the team evaluated how the average price per seat changes as the percentage of different bus manufacturers within the school bus fleet changes. For these scenarios, simulated data were created by selectively sampling from the original dataset based on manufacturers of interest. For example, if we were interested in evaluating what the average price per seat for Type D buses would be if 33% of the school bus fleet were made by GreenPower, we would split the dataset into two pools – one made up of Type D bus contracts for GreenPower buses, and one with all of the other Type D bus contracts. We would then examine the total number of Type D buses (21) and sample from the GreenPower pool 7 times with replacement, and sample from the non-GreenPower pool 14 times with replacement. That would give us a single bootstrapped sample. From these single bootstrapped samples, we can calculate the percentage of GreenPower buses and the average price per seat. We can repeat this process many times to find the sampling distribution for average price per seat in this scenario.")
         ),
@@ -259,15 +293,31 @@ ui <- navbarPage(
                   choices = bus_manuf_choices[["Type C"]],  # default matches selected type
                   selected = bus_manuf_choices[["Type C"]][1]
                 ),
+                h3("How to interpret:"),
+                p("The plot shows the shows the relationship between average price per seat and percentage of buses made by by selected manufacturer for a given bus type.")
               )
             ),
             mainPanel(
-              h3("Simulation Results"),
+              h2("Simulation Results"),
               plotOutput("boot_chart")
             )
           )
         )
       )
+    )
+  ),
+
+  tabPanel(
+    title = "Discussion",
+    fluidPage(
+      h3("Financial Impacts"),
+      p("Each bus type was analysed through bootstrapping simulations to understand the financial impact of increasing the percentage of different bus manufacturers within the electrified school bus fleet. For each simulated scenario, bootstrapping was performed by sampling the original dataset with replacement to create a new simulated dataset. To evaluate the change in average bus price for the scenarios of interest, bootstrapping simulations were generated from the original dataset to estimate the baseline distribution of the average bus price per seat. To simulate an increase in the market share of a given bus manufacturer, another set of bootstrapping simulations was generated by selectively sampling contracts involving the bus manufacturer of interest. The difference in average price per seat between the two scenarios was calculated, and 90% confidence intervals were computed."),
+      p("There are 9 manufacturers that make Type A buses. Increasing the percentage of buses made by Lightning eMotors/Collins Bus from 5% to 30% resulted in a decrease in average price per seat of $1655. The 90% confidence interval for the decrease in average price per seat is $2999 to $399."),
+      p("There are four manufacturers that make Type C buses, and three for Type D buses. The difference between each manufacturer’s average price per seat is much smaller for Type C and Type D buses than for Type A buses. When evaluating the impacts of increasing the percentage of the bus manufacturers with the lowest price per seat, a much greater increase must occur before the difference is statistically significant. For Type C buses, Lion Electric has the lowest price per seat. Increasing the percentage of Lion Electric buses from 3% to 70% resulted in a decrease in average price per seat of $303, with a 90% confidence interval of $556 to $62. For Type D buses, increasing the percentage of GreenPower from 14% to 90% resulted in a decrease in average price per seat of $317 with a 90% confidence interval of $631 to $10."),
+      h3("Recommendations"),
+      p("From our analysis, focusing on procuring Type A buses from Lightning eMotors/Collins Bus has the greatest potential to reduce cost per seat for the electric school bus fleet. This analysis took into account , bus manufacturer, base price, and seating capacity across the three types of buses (Type A, Type C, Type D). Our analysis reveals that a statistically significant change in average price per seat can be achieved for Type A buses with only a 25% increased allocation. As such,school districts should focus on procuring less expensive Type A buses from Lightning eMotors/Collins Bus."),
+      p("To mitigate the risks of overreliance on one supplier, Pegasus Zeus is an alternate supplier for Type A; however, since the price per seat for Type A buses made by Pegasus Zeus is greater than the price per seat for Type A buses made by Lightning eMotors/Collins Bus, a larger change in purchasing trends will be required to lead to a statistically significant difference in average price per seat."),
+      p("From a different perspective of Type C and Type D buses, we can conclude that for Type C, Lion Electric is the preferred supplier followed by Blue Bird in order to mitigate the overreliance. From a Type D perspective, Green Power is the preferred supplier followed by Lion Electric in order to mitigate the overreliance on one supplier.")
     )
   )
 )
@@ -290,22 +340,53 @@ server <- function(input, output, session) {
       x = "bus_manufacturer"
     } else if (input$factor_col == "Bus Model"){
       x = "bus_model"
+    } else if (input$factor_col == "Bus Type"){
+      x = "bus_type"
     } else if (input$factor_col == "Special Needs"){
       x = "special_needs_bus"
     } else if (input$factor_col == "State"){
       x = "state"
     } else if (input$factor_col == "Vehicle Dealer"){
       x = "vehicle_dealer"
-    }
+    } 
 
     run_single_anova(dat, 
       response_col = "base_price", factor_col = x,
       response_lab = "Base Price", factor_lab = input$factor_col
     )
+  })
 
+  ## grouped anova #####
 
+  output$grouped_anova <- renderPlot({
+
+    # x variable
+    if (input$factor_col_g == "Purchase Year"){
+      x = "purchase_year"
+    } else if (input$factor_col_g == "Bus Manufacturer"){
+      x = "bus_manufacturer"
+    } else if (input$factor_col_g == "Bus Model"){
+      x = "bus_model"
+    } else if (input$factor_col_g == "Special Needs"){
+      x = "special_needs_bus"
+    } else if (input$factor_col_g == "State"){
+      x = "state"
+    } else if (input$factor_col_g == "Vehicle Dealer"){
+      x = "vehicle_dealer"
+    }
+
+    run_grouped_anova(
+      dat,
+      group_by = "bus_type",
+      factor_col = x,
+      response_col = "base_price",
+      group_by_lab = "Bus Type",
+      factor_lab = input$factor_col_g,
+      response_lab = "Base Price"
+    )
 
   })
+
 
   ## spc charts #####
   output$spc_chart <- renderPlot({

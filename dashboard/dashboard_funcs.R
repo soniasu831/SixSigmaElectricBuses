@@ -307,21 +307,24 @@ run_single_anova <- function(df, response_col = "base_price", factor_col, respon
 }
 
 # %% grouped anova function #####
-run_grouped_anova <- function(df, group_by, factor_col, response_col = "base_price", alpha = 0.05) {
+run_grouped_anova <- function(df, group_by, factor_col, response_col = "base_price", group_by_lab = group_by, factor_lab = factor_col, response_lab = response_col, alpha = 0.05) {
   
   library(dplyr)
+  library(ggplot2)
   library(car)
+  library(ggtext)
   
-  # --- Input checks --------------------------------------------------
+  # --- Column checks --------------------------------------------------
   if (!all(c(group_by, factor_col, response_col) %in% names(df))) {
     stop("One or more specified columns not found in dataset.")
   }
   
-  df[[group_by]] <- as.factor(df[[group_by]])
+  df[[group_by]]  <- as.factor(df[[group_by]])
   df[[factor_col]] <- as.factor(df[[factor_col]])
   
   grouped_data <- split(df, df[[group_by]])
   
+  # --- Output results table ------------------------------------------
   results <- data.frame(
     Group = character(),
     DF_Factor = numeric(),
@@ -334,44 +337,80 @@ run_grouped_anova <- function(df, group_by, factor_col, response_col = "base_pri
     stringsAsFactors = FALSE
   )
   
+  # --- Loop through groups -------------------------------------------
   for (g in names(grouped_data)) {
     sub_df <- grouped_data[[g]]
     
-    # Skip small groups or single-level factors
-    if (nrow(sub_df) < 5 || nlevels(sub_df[[factor_col]]) < 3) {
-      next
-    }
+    # Skip groups without enough data
+    if (nrow(sub_df) < 5 || nlevels(sub_df[[factor_col]]) < 2) next
     
-    formula <- as.formula(paste("`", response_col, "` ~ `", factor_col, "`", sep = ""))
-    
+    formula <- as.formula(paste0("`", response_col, "` ~ `", factor_col, "`"))
     model <- tryCatch(aov(formula, data = sub_df), error = function(e) NULL)
     if (is.null(model)) next
     
     summary_out <- tryCatch(summary(model)[[1]], error = function(e) NULL)
-    if (is.null(summary_out) || !"Pr(>F)" %in% names(summary_out)) next
+    if (is.null(summary_out)) next
     
-    # Extract safe statistics
-    p_val <- as.numeric(summary_out[1, "Pr(>F)"])
-    f_val <- as.numeric(summary_out[1, "F value"])
-    df_factor <- as.numeric(summary_out[1, "Df"])
-    df_res <- as.numeric(summary_out["Residuals", "Df"])
+    p_val <- summary_out[1, "Pr(>F)"]
+    f_val <- summary_out[1, "F value"]
+    df_factor <- summary_out[1, "Df"]
+    df_res <- summary_out["Residuals", "Df"]
     
     shapiro_p <- tryCatch(shapiro.test(residuals(model))$p.value, error = function(e) NA)
-    levene_p <- tryCatch(leveneTest(formula, data = sub_df)[["Pr(>F)"]][1], error = function(e) NA)
+    levene_p  <- tryCatch(leveneTest(formula, data = sub_df)[["Pr(>F)"]][1], error = function(e) NA)
     
-    results <- rbind(results, data.frame(
-      Group = g,
-      DF_Factor = df_factor,
-      DF_Residuals = df_res,
-      F_value = f_val,
-      P_value = p_val,
-      Shapiro_p = shapiro_p,
-      Levene_p = levene_p,
-      Significant = !is.na(p_val) && p_val < alpha,
-      stringsAsFactors = FALSE
-    ))
+    # store results
+    results <- rbind(
+      results,
+      data.frame(
+        Group = g,
+        DF_Factor = df_factor,
+        DF_Residuals = df_res,
+        F_value = f_val,
+        P_value = p_val,
+        Shapiro_p = shapiro_p,
+        Levene_p = levene_p,
+        Significant = !is.na(p_val) && p_val < alpha,
+        stringsAsFactors = FALSE
+      )
+    )
   }
   
+  # --- Add p-values back to df for labeling on plot -------------------
+  df <- df %>%
+    left_join(
+      results %>% select(Group, P_value) %>%
+        rename(!!group_by := Group),
+      by = group_by
+    )
+  
+  df$p_label <- paste0("p = ", formatC(df$P_value, digits = 3, format = "e"))
+  
+  # --- Faceted boxplot ------------------------------------------------
+  p <- ggplot(df, aes_string(x = factor_col, y = response_col, fill = factor_col)) +
+    geom_boxplot(alpha = 0.7, outlier.color = "red") +
+    facet_wrap(as.formula(paste("~", group_by))) +
+    geom_text(
+      aes(label = p_label),
+      x = -Inf, y = Inf, hjust = -0.1, vjust = 1.2,
+      size = 3, color = "black"
+    ) +
+    theme_minimal(base_size = 13) +
+    labs(
+      title = paste("Grouped ANOVA by", group_by_lab),
+      subtitle = paste("Factor tested:", factor_lab),
+      x = factor_lab,
+      y = response_lab
+    ) +
+    theme(
+      legend.position = "none",
+      axis.text.x = element_text(angle = -45, hjust = 0),
+      strip.text = element_text(face = "bold", size = 12)
+    )
+  
+  return(p)
+  
+  # --- Final output table ---------------------------------------------
   results <- results %>%
     arrange(P_value) %>%
     mutate(Significance = ifelse(Significant, "✅ Significant", "❌ Not significant"))
