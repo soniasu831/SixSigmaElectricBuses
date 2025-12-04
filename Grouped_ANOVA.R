@@ -114,7 +114,7 @@ run_grouped_anova <- function(df, group_by, factor_col, response_col = "base_pri
     ) +
     theme(
       legend.position = "none",
-      axis.text.x = element_text(angle = -45, hjust = 0),
+      axis.text.x = element_text(angle = -90, hjust = 0, size = 8),
       strip.text = element_text(face = "bold", size = 12),
       panel.border = element_rect(color = "black", fill = NA, linewidth = 0.7),
       panel.spacing = unit(1.2, "lines")
