@@ -63,9 +63,9 @@ ui <- navbarPage(
       p("By using ANOVA, we will test for significant differences in mean procurement prices across categorical variables such as manufacturer, bus type, and dealer. By leveraging regression, we will quantify the effect of continuous variables on the dependent variable, the price per seat. Bootstrapped simulations will be used to model uncertainty in market composition and estimate the impact of varying manufacturer dominance and procurement conditions."),
 
       h3("Dataset"),
-      p("We are using the Electric School Bus Price Tracker — State-Level Base Prices dataset", 
-      a("(Fraser 2022),", href = "https://github.com/timothyfraser/sts/tree/3week/data/electric_school_buses"),
-      "which contains state-level base prices for electric school buses compiled from publicly available state contracts and procurement sources."
+      p("We are using the Electric School Bus Price Tracker — State-Level Base Prices", 
+      a("dataset,", href = "https://github.com/timothyfraser/sts/tree/3week/data/electric_school_buses"),
+      "which contains state-level base prices for electric school buses compiled from publicly available state contracts and procurement sources and was developed by ElectricSchoolBusInitiative.org."
       ),
       p("Dates were converted from Excel serial dates to YYYY-MM-DD. Price per seat was calculated by dividing the base price by the seating capacity. For analyses done based on price per seat, entries with no seating capacity data were omitted."),
       br(),
@@ -76,6 +76,33 @@ ui <- navbarPage(
         )
       )
 
+    )
+  ),
+
+  ## background #####
+  tabPanel(
+    title = "Background",
+    fluidPage(
+      h3("Project Background"),
+      p("Electric school buses are expanding across the United States. However, their procurement prices vary widely for similar models. Districts must make long-term investment decisions without clear pricing standards or predictable cost behavior. Procurement records from 2020 to 2023 show significant differences across states, manufacturers, and dealers. These inconsistencies create equity challenges for districts that rely on stable budgets and transparent pricing. Base prices average about $347,232, so even minor variations represent considerable financial consequences. The problem appears during procurement milestones when districts evaluate bids and select vendors. The variation spans 16 states, 12 manufacturers, and 45 dealers, showing broad national inconsistency. Districts risk overspending when they cannot identify which factors drive cost differences. These uncertainties slow the adoption of clean transportation solutions and weaken planning efforts. This project aims to understand why prices vary and how data can support fairer procurement."),
+      h3("Why this matters"),
+      p("Electrification of school bus fleets is a primary national goal for decarbonization and public health. Districts need clear pricing insights to budget responsibly and avoid overpaying for similar buses. Understanding price drivers helps policymakers design better incentives and procurement rules. Improved pricing clarity can speed up adoption and reduce financial barriers for early adopters. Procurement decisions made today will shape fleet composition and cost savings for many years. Ignoring these discrepancies would allow inconsistent pricing to persist across states and vendors. Districts may continue paying uneven prices that strain budgets and reduce access to clean buses. This project supports clean energy goals, equity in public procurement, and waste reduction. Lean Six Sigma tools help identify and reduce unwanted variation in the procurement process. The work is timely because large-scale electrification efforts are underway now."),
+      h3("Research Questions"),
+      h4("Primary Question"),
+      tags$ul(
+        tags$li("What factors drive variation in electric school bus procurement prices on a per-seat basis?"),
+      ),
+
+      h4("Sub-Questions"),
+      tags$ul(
+        tags$li("Do manufacturer, bus type, state, or dealer create significant differences in mean prices?"),
+        tags$li("Which continuous variables meaningfully affect price when modeled with regression?"),
+        tags$li("How much total variation can be explained using ANOVA, SPC, and Regression tools?"),
+        tags$li("What level of uncertainty remains after statistical modeling? Can these findings help districts make more consistent and cost-effective purchasing decisions?")
+      ),
+
+      h3("Literature Review"),
+      p("Electric school buses are technologically mature but still face barriers related to durability, cold-climate performance, and long-term service infrastructure (Lee & Chard, 2023). Although upfront prices remain two to three times higher than those of diesel buses, lower maintenance costs and substantial health and climate benefits can offset this premium over a vehicle’s lifetime (ChargEVC Study Group, 2023; Choma et al., 2024). Adoption remains uneven, with low-income and minority communities disproportionately exposed to diesel pollution and receiving fewer clean transportation benefits (Moses & Brown, 2022). Studies show that purchase cost is the most influential driver of cost-effectiveness for battery-electric buses, making procurement pricing a central barrier to electrification (Avenali et al., 2023). Research also finds that combining distributed energy resources, smart charging, and potential V2G services can reduce operational costs and improve financial outcomes for districts (Becker et al., 2019; Noel & McCormack, 2014; Chen et al., 2023). Successful deployment requires early planning, workforce training, depot space readiness, charger interoperability, and reliable parts availability (Center for Urban Transportation Research, 2023). Best-practice studies highlight the need to match routes with battery range, grid capacity, and community priorities to optimize total cost of ownership (C40 Cities Climate Leadership Group, n.d.; Panta et al., 2024). Institutional constraints and outdated procurement norms limit the effectiveness of electric bus contracts, requiring new frameworks that align responsibilities with emerging technologies (Aslund et al., 2025; Kapatsila et al., 2024). Innovative financing models such as battery leasing, bus-as-a-service, joint procurement, and negotiated contracting can reduce upfront prices and stabilize long-term fleet costs (Li et al., 2018; Hensher, 2021; Hensher, 2022). Across case studies, aggregation, standardization, cooperative purchasing, and risk-sharing partnerships consistently lower costs and accelerate adoption while delivering major health and economic benefits (Dolman & Madden, 2018; Smyth et al., 2020; Plotnick & Pierce, 2021; Oester & Woodrum, 2024; Bursey & Kalisa, 2025).")
     )
   ),
 
@@ -108,8 +135,10 @@ ui <- navbarPage(
                 ),
                 h3("How to interpret:"),
                 p("A significant one-way ANOVA result (p < 0.05) indicates that at least one group mean differs from the others. A non-significant p-value suggests no evidence of meaningful price differences across the tested categories."),
-                p("P-value < 0.05 → The categorical factor has a statistically significant effect on the bus base price."),
-                p("P-value ≥ 0.05 → No evidence of the category having a meaningful effect on bus base price.")
+                tags$ul(
+                  tags$li("P-value < 0.05 → The categorical factor has a statistically significant effect on the bus base price."),
+                  tags$li("P-value ≥ 0.05 → No evidence of the category having a meaningful effect on bus base price.")
+                )
               )
             ),
             mainPanel(
@@ -160,7 +189,7 @@ ui <- navbarPage(
   ## spc #####
   tabPanel(
     title = "SPC Charts",
-    sidebarLayout(
+    fluidPage(
       
       sidebarPanel(
         # select bus type
@@ -200,10 +229,17 @@ ui <- navbarPage(
           ),
           selected = "Base Price"
         ),
-        p("Categorical charts inspired by statistical process control (SPC) are used to compare subgroup averages. For each category of interest, subgroup means are calculated and plotted against the grand mean. Evaluating average cost metrics across different categories enables the team to identify the factors that contribute to lower costs."),
+        h3("How to interpret:"),
+        tags$ul(
+          tags$li("Points below the mean - Manufacturer has a lower-than-average price per seat for that bus type; this represents better cost efficiency relative to the population average."),
+          tags$li("Points above the mean - Manufacturer has a higher-than-average price per seat for that bus type; this represents higher costs relative to the population average."),
+          tags$li("Points below the lower control limit - Manufacturer is an outlier with a lower average price per seat"),
+          tags$li("Points above the upper control limit - Manufacturer is an outlier with a higher average price per seat"),
+        )
       ),
       mainPanel(
         h2("SPC Charts"),
+        p("Statistical Process Control (SPC) charts were used to visualize and compare the average price per seat across different bus manufacturers within each bus type category. For each bus type (Type A, Type C, and Type D), the average price per seat was calculated for each manufacturer and plotted as individual points. Control limits were established at ±3 sigma (standard deviation) around the grand mean (overall average price per seat for all manufacturers within that bus type). These control limits define the expected range of variation. Manufacturers with average prices per seat falling outside these control limits are outliers, indicating performance that deviates from the typical variation observed across the population and suggesting they are more or less expensive than the average. Points above the upper control limit indicate higher-than-expected costs, while points below the lower control limit indicate lower-than-expected costs. For each bus type, these charts help us identify which manufacturers are, on average, more cost-efficient in terms of price per seat."),
         plotOutput("spc_chart")
       )
     )
@@ -242,77 +278,62 @@ ui <- navbarPage(
   ## bootstrapping #####
   tabPanel(
     title = "Bootstrapping",
-    div(
-      style = "padding-left: 15px",
-      tabsetPanel(
- 
-        ### methodology #####
-        tabPanel(
-          "Methodology",
-          h2("Bootstrapping Methodology"),
-          p("Bootstrapping is a statistical method that involves resampling a given dataset to create simulated samples. Performing this technique multiple times and evaluating descriptive statistics for a dataset can yield insights into the sampling distribution of a statistic of interest, and can also be used to simulate what the data might look like under different scenarios. In this investigation, the team employed bootstrapping simulations to assess the impact of various purchasing strategies on the costs associated with school bus procurement."),
-          p("In particular, the team evaluated how the average price per seat changes as the percentage of different bus manufacturers within the school bus fleet changes. For these scenarios, simulated data were created by selectively sampling from the original dataset based on manufacturers of interest. For example, if we were interested in evaluating what the average price per seat for Type D buses would be if 33% of the school bus fleet were made by GreenPower, we would split the dataset into two pools – one made up of Type D bus contracts for GreenPower buses, and one with all of the other Type D bus contracts. We would then examine the total number of Type D buses (21) and sample from the GreenPower pool 7 times with replacement, and sample from the non-GreenPower pool 14 times with replacement. That would give us a single bootstrapped sample. From these single bootstrapped samples, we can calculate the percentage of GreenPower buses and the average price per seat. We can repeat this process many times to find the sampling distribution for average price per seat in this scenario.")
+    fluidPage(
+      
+      sidebarPanel(
+        numericInput(
+          inputId = "boot_reps",
+          label   = "Simulation Size:",
+          value   = 500,   # default
+          min     = 100,
+          max     = 5000,
         ),
 
-        ### simulations #####
-        tabPanel(
-          "Simulations",
+        numericInput(
+          inputId = "seed",
+          label   = "Random Seed",
+          value   = 50,   # default
+        ),
 
-          sidebarLayout(
-            
-            div(
-              style = "padding-top: 15px",
-              # sidebar for selections
-              sidebarPanel(
-                numericInput(
-                  inputId = "boot_reps",
-                  label   = "Simulation Size:",
-                  value   = 500,   # default
-                  min     = 100,
-                  max     = 5000,
-                ),
+        # bus type for bootstrapping
+        selectInput(
+          inputId = "bus_type_boot",
+          label   = "Bus type:",
+          choices = c("Type A", "Type C", "Type D"),
+          selected = "Type C"
+        ),
 
-                numericInput(
-                  inputId = "seed",
-                  label   = "Random Seed",
-                  value   = 50,   # default
-                ),
+        # manufacturer depends on bus_type_boot
+        selectInput(
+          inputId = "bus_manuf",
+          label   = "Bus manufacturer:",
+          choices = bus_manuf_choices[["Type C"]],  # default matches selected type
+          selected = bus_manuf_choices[["Type C"]][1]
+        ),
+        h3("How to interpret:"),
+        p("The plot shows the shows the relationship between average price per seat and percentage of buses made by by selected manufacturer for a given bus type."),
+        p("The R^2 value for the line of best fit describes the percentage of the variation in the dataset that the model accounts for. ")
+      ),
 
-                # bus type for bootstrapping
-                selectInput(
-                  inputId = "bus_type_boot",
-                  label   = "Bus type:",
-                  choices = c("Type A", "Type C", "Type D"),
-                  selected = "Type C"
-                ),
-
-                # manufacturer depends on bus_type_boot
-                selectInput(
-                  inputId = "bus_manuf",
-                  label   = "Bus manufacturer:",
-                  choices = bus_manuf_choices[["Type C"]],  # default matches selected type
-                  selected = bus_manuf_choices[["Type C"]][1]
-                ),
-                h3("How to interpret:"),
-                p("The plot shows the shows the relationship between average price per seat and percentage of buses made by by selected manufacturer for a given bus type.")
-              )
-            ),
-            mainPanel(
-              h2("Simulation Results"),
-              plotOutput("boot_chart")
-            )
-          )
-        )
+      mainPanel(
+        h2("Bootstrapping Simulations"),
+        p("Bootstrapping is a statistical method that involves resampling a given dataset to create simulated samples. Performing this technique multiple times and evaluating descriptive statistics for a dataset can yield insights into the sampling distribution of a statistic of interest, and can also be used to simulate what the data might look like under different scenarios."),
+        p("To evaluate how the average price per seat changes as the percentage of different bus manufacturers within the school bus fleet changes, simulated data were created by sampling from the original dataset based on manufacturers of interest."),
+        p("Example: We were interested in evaluating what the average price per seat for Type D buses would be if 33% of the school bus fleet were made by GreenPower. There are 21 Type D bus contracts in the original dataset, so we would sample from the pool of Type D GreenPower contracts 7 times with replacement, and sample from the pool of Type D non-GreenPower contracts 14 times with replacement to get new sample of 21 contract, giving us a single bootstrapped sample, from which we can calculate the percentage of GreenPower buses and the average price per seat. We can repeat this process many times to find the sampling distribution for average price per seat in this scenario."),
+        plotOutput("boot_chart")
       )
     )
   ),
 
+  ## discussion #####
   tabPanel(
     title = "Discussion",
     fluidPage(
       h3("Financial Impacts"),
-      p("Each bus type was analysed through bootstrapping simulations to understand the financial impact of increasing the percentage of different bus manufacturers within the electrified school bus fleet. For each simulated scenario, bootstrapping was performed by sampling the original dataset with replacement to create a new simulated dataset. To evaluate the change in average bus price for the scenarios of interest, bootstrapping simulations were generated from the original dataset to estimate the baseline distribution of the average bus price per seat. To simulate an increase in the market share of a given bus manufacturer, another set of bootstrapping simulations was generated by selectively sampling contracts involving the bus manufacturer of interest. The difference in average price per seat between the two scenarios was calculated, and 90% confidence intervals were computed."),
+      p("Each bus type was analysed through bootstrapping simulations to understand the financial impact of increasing the percentage of different bus manufacturers within the electrified school bus fleet. For each simulated scenario, bootstrapping was performed by sampling the original dataset with replacement to create a new simulated dataset. To evaluate the change in average bus price for the scenarios of interest, bootstrapping simulations were generated from the original dataset to estimate the baseline distribution of the average bus price per seat. To simulate an increase in the market share of a given bus manufacturer, another set of bootstrapping simulations was generated by randomly sampling from the pool of contracts involving the bus manufacturer of interest. The difference in average price per seat between the two scenarios was calculated, and 90% confidence intervals were computed."),
+      h4("Type A Buses"),
       p("There are 9 manufacturers that make Type A buses. Increasing the percentage of buses made by Lightning eMotors/Collins Bus from 5% to 30% resulted in a decrease in average price per seat of $1655. The 90% confidence interval for the decrease in average price per seat is $2999 to $399."),
+      h4("Type C and Type D Buses"),
       p("There are four manufacturers that make Type C buses, and three for Type D buses. The difference between each manufacturer’s average price per seat is much smaller for Type C and Type D buses than for Type A buses. When evaluating the impacts of increasing the percentage of the bus manufacturers with the lowest price per seat, a much greater increase must occur before the difference is statistically significant. For Type C buses, Lion Electric has the lowest price per seat. Increasing the percentage of Lion Electric buses from 3% to 70% resulted in a decrease in average price per seat of $303, with a 90% confidence interval of $556 to $62. For Type D buses, increasing the percentage of GreenPower from 14% to 90% resulted in a decrease in average price per seat of $317 with a 90% confidence interval of $631 to $10."),
       h3("Recommendations"),
       p("From our analysis, focusing on procuring Type A buses from Lightning eMotors/Collins Bus has the greatest potential to reduce cost per seat for the electric school bus fleet. This analysis took into account , bus manufacturer, base price, and seating capacity across the three types of buses (Type A, Type C, Type D). Our analysis reveals that a statistically significant change in average price per seat can be achieved for Type A buses with only a 25% increased allocation. As such,school districts should focus on procuring less expensive Type A buses from Lightning eMotors/Collins Bus."),
