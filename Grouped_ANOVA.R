@@ -266,4 +266,5 @@ tukey_table <- bind_rows(
   })
 )
 
-print(tukey_table) %>% print(n = 120)
+print(tukey_table, n = 120)
+
