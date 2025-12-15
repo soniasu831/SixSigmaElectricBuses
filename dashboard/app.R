@@ -49,6 +49,27 @@ bus_manuf_choices <- list(
   )
 )
 
+# footer #####
+footer <- tags$footer(
+  style = "
+    margin-top: 24px;
+    padding: 12px 0;
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+    border-top: 1px solid #eee;
+  ",
+  HTML(
+    paste(
+      "Created by Louise Smith, Sonia Su, Karishni Veerabahu Pillai, Raveena Kumari, and Siva Selvam",
+      "© 2025",
+      "Last updated: December 14, 2025",
+      sep = " • "
+    )
+  )
+)
+
+
 # ui #####
 ui <- navbarPage(
   title = "Team 18",
@@ -265,8 +286,22 @@ ui <- navbarPage(
           ),
           selected = "Type C"
         ),
-
-        p("To quantify the impacts of different variables on bus pricing, regression models can be developed. By comparing beta coefficients, the team will be able to discern the direction and magnitude of the effect of different variables on bus pricing. Associated p-values can be used to determine the statistical significance of the identified relationships."),
+        p("Multivariable linear regression was used to assess how several categorical and numerical predictors jointly influence bus base price. By modeling all variables simultaneously (e.g., bus type, manufacturer, seating capacity, model year), the analysis isolates each predictor’s unique effect while controlling for the others. Regression coefficients (β) indicate the direction and size of these effects, positive values reflect higher predicted prices, negative values reflect lower prices, and associated p-values determine whether each relationship is statistically significant."),
+        h3("How to interpret:"),
+        h4("Coefficient sign (β)"),
+        tags$ul(
+          tags$li("⁠Positive β: Predictor is associated with higher bus prices"),
+          tags$li("⁠Negative β: Predictor is associated with lower bus prices"),
+        ),
+        h4("Effect size"),
+        tags$ul(
+          tags$li("⁠Larger absolute β values indicate stronger influence on bus price")
+        ),
+        h4("P-values"),
+        tags$ul(
+          tags$li("⁠p < 0.05: The predictor has a statistically significant effect on bus pricing, controlling for all other variables."),
+          tags$li("p ≥ 0.05: No evidence of a meaningful independent effect in the multivariable context.")
+        )
       ),
       column(
         width = 7,
@@ -340,7 +375,8 @@ ui <- navbarPage(
       p("To mitigate the risks of overreliance on one supplier, Pegasus Zeus is an alternate supplier for Type A; however, since the price per seat for Type A buses made by Pegasus Zeus is greater than the price per seat for Type A buses made by Lightning eMotors/Collins Bus, a larger change in purchasing trends will be required to lead to a statistically significant difference in average price per seat."),
       p("From a different perspective of Type C and Type D buses, we can conclude that for Type C, Lion Electric is the preferred supplier followed by Blue Bird in order to mitigate the overreliance. From a Type D perspective, Green Power is the preferred supplier followed by Lion Electric in order to mitigate the overreliance on one supplier.")
     )
-  )
+  ),
+  footer
 )
 
 # server #####
