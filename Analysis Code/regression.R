@@ -3,12 +3,13 @@ library(dplyr) # data wrangling
 library(readr) # reading csv file
 library(broom) # regression
 library(texreg)
+library(xml2)
 
 # data source
 source = "buses.csv" 
 dat = source %>% read_csv()
 
-source("tim_functions_process_control.R")
+source("Analysis Code/tim_functions_process_control.R")
 
 dat = dat %>% mutate(
   # convert from excel serial dates if date is available
@@ -338,3 +339,27 @@ note_text   <- paste(
 )
 
 format_htmlreg(input_html, output_html, sci_digits, note_text)
+
+
+# %% multicollinearity
+summary(m3a)
+install.packages("car")
+library(car)
+
+vif(m3a)[,3]^2
+#                       GVIF Df GVIF^(1/(2*Df))
+# bus_manufacturer  8.489294  8        1.143022
+# state            13.879878  8        1.178689
+# purchase_year     2.711262  1        1.646591
+
+vif(m3c)[,3]^2
+#                      GVIF Df GVIF^(1/(2*Df))
+# bus_manufacturer 2.534520  3        1.167659
+# state            8.934002 14        1.081349
+# purchase_year    3.717852  2        1.388587
+
+vif(m3d)[,3]^2
+#                      GVIF Df GVIF^(1/(2*Df))
+# bus_manufacturer 2.653792  2        1.276341
+# state            4.055666  6        1.123756
+# purchase_year    4.294235  3        1.274914

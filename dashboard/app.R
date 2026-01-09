@@ -63,7 +63,7 @@ footer <- tags$footer(
     paste(
       "Created by Louise Smith, Sonia Su, Karishni Veerabahu Pillai, Raveena Kumari, and Siva Selvam",
       "© 2025",
-      "Last updated: December 14, 2025",
+      "Last updated: January 9, 2026",
       sep = " • "
     )
   )
@@ -72,7 +72,7 @@ footer <- tags$footer(
 
 # ui #####
 ui <- navbarPage(
-  title = "Team 18",
+  title = "EV Bus Cost Simulator",
 
   ## home #####
   tabPanel(
