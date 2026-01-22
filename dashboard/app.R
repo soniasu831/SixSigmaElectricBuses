@@ -1,11 +1,3 @@
-# https://shiny.posit.co/r/getstarted/shiny-basics/lesson1/
-# https://shiny.posit.co/r/gallery/#user-showcase
-
-# we liked this example!! 
-# https://shiny.posit.co/r/gallery/education/didacting-modeling/
-
-# install.packages("shiny")
-# install.packages("DT")
 
 # load in libraries, helper files, and dataset #####
 
@@ -13,41 +5,13 @@ library(shiny)
 library(bslib)
 library(readr) # read_csv
 library(DT) # interactive data table
+library(texreg)
+library(xml2)
 
 source("dashboard_funcs.R")
 
-dat = read_csv("buses_with_price_per_seat_and_converted_dates.csv")
-
-dat_A = dat[dat$bus_type == "Type A", ]
-dat_C = dat[dat$bus_type == "Type C", ]
-dat_D = dat[dat$bus_type == "Type D", ]
-
-# valid manufacturers by bus type
-bus_manuf_choices <- list(
-  "Type A" = c(
-    "Lightning eMotors/Collins Bus",
-    "Micro Bird",
-    "Collins Bus",
-    "GreenPower",
-    "Trans Tech",
-    "Endera",
-    "Thomas Built Buses",
-    "Magellan",
-    "Pegasus/Zeus Electric"
-    # NA omitted on purpose
-  ),
-  "Type C" = c(
-    "Thomas Built Buses",
-    "Blue Bird",
-    "IC Bus",
-    "Lion Electric"
-  ),
-  "Type D" = c(
-    "Blue Bird",
-    "GreenPower",
-    "Lion Electric"
-  )
-)
+# Load default dataset
+default_dat = read_csv("buses_with_price_per_seat_and_converted_dates.csv")
 
 # footer #####
 footer <- tags$footer(
@@ -63,7 +27,7 @@ footer <- tags$footer(
     paste(
       "Created by Louise Smith, Sonia Su, Karishni Veerabahu Pillai, Raveena Kumari, and Siva Selvam",
       "© 2025",
-      "Last updated: January 9, 2026",
+      "Last updated: January 22, 2026",
       sep = " • "
     )
   )
@@ -78,6 +42,35 @@ ui <- navbarPage(
   tabPanel(
     icon("home"), 
     fluidPage(
+      # Add file upload widget at the top
+      fluidRow(
+        column(
+          12,
+          wellPanel(
+            style = "background-color: #f8f9fa; border: 1px solid #dee2e6;",
+            fluidRow(
+              column(
+                6,
+                fileInput(
+                  inputId = "file_upload",
+                  label = "Upload Your CSV File (optional):",
+                  accept = c(".csv"),
+                  buttonLabel = "Browse...",
+                  placeholder = "No file selected"
+                )
+              ),
+              column(
+                6,
+                div(
+                  style = "padding-top: 8px;",
+                  p(strong("Instructions:"), "Upload a CSV file with the same structure as the default dataset. Required columns include: source_type, purchase_year, bus_manufacturer, bus_model, bus_type, seating_capacity, base_price, special_needs_bus, state, vehicle_dealer, source, source_url, date_published_or_updated."),
+                  actionButton("reset_data", "Reset to Default Data", class = "btn-secondary btn-sm")
+                )
+              )
+            )
+          )
+        )
+      ),
 
       h3("Project Objectives"),
       p("The primary objective is to apply methods to identify the key drivers of electric school bus procurement price variation on a per-seat basis and determine which controllable factors most effectively influence price variability across manufacturers, bus types, and states. A secondary objective is to develop a framework grounded in statistical analysis that helps us understand market behavior in relation to procurement."),
@@ -342,8 +335,8 @@ ui <- navbarPage(
         selectInput(
           inputId = "bus_manuf",
           label   = "Bus manufacturer:",
-          choices = bus_manuf_choices[["Type C"]],  # default matches selected type
-          selected = bus_manuf_choices[["Type C"]][1]
+          choices = NULL,  # Will be populated dynamically
+          selected = NULL
         ),
         h3("How to interpret:"),
         p("The plot shows the shows the relationship between average price per seat and percentage of buses made by by selected manufacturer for a given bus type."),
@@ -382,9 +375,96 @@ ui <- navbarPage(
 # server #####
 server <- function(input, output, session) {
 
+  # Reactive value to store the current dataset
+  current_data <- reactiveVal(default_dat)
+  
+  # Make bus_manuf_choices reactive based on current data
+  bus_manuf_choices <- reactive({
+    req(current_data())
+    
+    dat <- current_data()
+    
+    list(
+      "Type A" = dat[dat$bus_type == "Type A", ]$bus_manufacturer %>% 
+                   unique() %>% 
+                   na.omit() %>% 
+                   as.character(),
+      "Type C" = dat[dat$bus_type == "Type C", ]$bus_manufacturer %>% 
+                   unique() %>% 
+                   na.omit() %>% 
+                   as.character(),
+      "Type D" = dat[dat$bus_type == "Type D", ]$bus_manufacturer %>% 
+                   unique() %>% 
+                   na.omit() %>% 
+                   as.character()
+    )
+  })
+  
+  # Initialize manufacturer choices on startup
+  observe({
+    req(bus_manuf_choices())
+    
+    choices <- bus_manuf_choices()[["Type C"]]  # Default to Type C
+    choices <- choices[!is.na(choices)]
+    
+    updateSelectInput(
+      session,
+      "bus_manuf",
+      choices  = choices,
+      selected = if(length(choices) > 0) choices[1] else NULL
+    )
+  })
+  
+  # Handle file upload
+  observeEvent(input$file_upload, {
+    req(input$file_upload)
+    
+    tryCatch({
+      # Read the uploaded CSV
+      uploaded_dat <- read_csv(input$file_upload$datapath)
+      
+      # Calculate price_per_seat if it doesn't exist
+      if (!"price_per_seat" %in% names(uploaded_dat)) {
+        uploaded_dat$price_per_seat <- uploaded_dat$base_price / uploaded_dat$seating_capacity
+      }
+      
+      # Update the reactive value
+      current_data(uploaded_dat)
+      
+      # Show success message
+      showNotification("File uploaded successfully!", type = "message", duration = 3)
+      
+    }, error = function(e) {
+      showNotification(
+        paste("Error uploading file:", e$message), 
+        type = "error", 
+        duration = 5
+      )
+    })
+  })
+  
+  # Handle reset button
+  observeEvent(input$reset_data, {
+    current_data(default_dat)
+    showNotification("Data reset to default dataset.", type = "message", duration = 3)
+  })
+  
+  # Create reactive subsets based on current data
+  dat_A <- reactive({
+    current_data()[current_data()$bus_type == "Type A", ]
+  })
+  
+  dat_C <- reactive({
+    current_data()[current_data()$bus_type == "Type C", ]
+  })
+  
+  dat_D <- reactive({
+    current_data()[current_data()$bus_type == "Type D", ]
+  })
+
   ## bus data table #####
   output$bus_data = renderDT({
-    datatable(dat, options = list(scrollX = TRUE))
+    datatable(current_data(), options = list(scrollX = TRUE))
   })
 
   ## single anova #####
@@ -407,7 +487,7 @@ server <- function(input, output, session) {
       x = "vehicle_dealer"
     } 
 
-    run_single_anova(dat, 
+    run_single_anova(current_data(), 
       response_col = "base_price", factor_col = x,
       response_lab = "Base Price", factor_lab = input$factor_col
     )
@@ -433,7 +513,7 @@ server <- function(input, output, session) {
     }
 
     run_grouped_anova(
-      dat,
+      current_data(),
       group_by = "bus_type",
       factor_col = x,
       response_col = "base_price",
@@ -450,11 +530,11 @@ server <- function(input, output, session) {
     
     # bus type
     if (input$bus_type == "Type A"){
-      data = dat_A
+      data = dat_A()
     } else if (input$bus_type == "Type C"){
-      data = dat_C
+      data = dat_C()
     } else {
-      data = dat_D
+      data = dat_D()
     }
   
     # y variable
@@ -507,33 +587,43 @@ server <- function(input, output, session) {
   
   ## html regs #####
   output$html_reg <- renderUI({
-
-    # bus type
-    if (input$bus_type_reg == "Type A"){
-      chunk = "regression_type_a_sci.html"
-    } else if (input$bus_type_reg == "Type C"){
-      chunk = "regression_type_c_sci.html"
-    } else {
-      chunk = "regression_type_d_sci.html"
-    }
-
-    includeHTML(chunk)
+    result <- regression_analysis_formatted(
+      data = current_data(),
+      bus_type_filter = input$bus_type_reg,
+      sci_digits = 2  # Adjust as needed
+    )
+    HTML(result$html)
   })
 
   ## bootstrapped simulations #####
 
-  ### dynamically update list of bus manufactureres #####
+  ### dynamically update list of bus manufacturers #####
   observeEvent(input$bus_type_boot, {
     req(input$bus_type_boot)
 
-    choices <- bus_manuf_choices[[input$bus_type_boot]]
+    choices <- bus_manuf_choices()[[input$bus_type_boot]]  # Added () for reactive
     choices <- choices[!is.na(choices)]  # just in case
 
     updateSelectInput(
       session,
       "bus_manuf",
       choices  = choices,
-      selected = choices[1]
+      selected = if(length(choices) > 0) choices[1] else NULL
+    )
+  })
+  
+  # Update manufacturer choices when data changes
+  observeEvent(current_data(), {
+    req(input$bus_type_boot)
+    
+    choices <- bus_manuf_choices()[[input$bus_type_boot]]
+    choices <- choices[!is.na(choices)]
+    
+    updateSelectInput(
+      session,
+      "bus_manuf",
+      choices  = choices,
+      selected = if(length(choices) > 0) choices[1] else NULL
     )
   })
 
@@ -541,7 +631,7 @@ server <- function(input, output, session) {
   output$boot_chart <- renderPlot({
 
     # remove NAs
-    dat2 = dat[!is.na(dat$price_per_seat), ]
+    dat2 = current_data()[!is.na(current_data()$price_per_seat), ]
     boot_size = round(input$boot_reps/100)
     weights = seq(from = 0, to = 0.99, by = 0.01)
 

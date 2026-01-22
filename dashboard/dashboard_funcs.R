@@ -420,3 +420,139 @@ run_grouped_anova <- function(df, group_by, factor_col, response_col = "base_pri
   print(results)
   invisible(results)
 }
+
+
+# %% regression analysis functions #####
+
+## strip_se() #####
+# helper function to remove se from htmlreg()
+strip_se <- function(m) {
+  e <- texreg::extract(m)
+  e@se <- rep(NA_real_, length(e@se))  # NA -> nothing printed
+  e
+}
+
+## create_coef_map #####
+# Regression analysis function for dynamic HTML generation 
+create_coef_map <- function(data) {
+  # Get unique levels for each factor
+  manufacturers <- levels(data$bus_manufacturer)
+  states <- levels(data$state)
+  years <- levels(data$purchase_year)
+  
+  # Start with intercept
+  coef_map <- list("(Intercept)" = "Intercept")
+  
+  # Add manufacturers (skip first - it's the baseline)
+  if(length(manufacturers) > 1) {
+    for(i in 2:length(manufacturers)) {
+      key <- paste0("bus_manufacturer", manufacturers[i])
+      coef_map[[key]] <- manufacturers[i]
+    }
+  }
+  
+  # Add states (skip first - it's the baseline)
+  if(length(states) > 1) {
+    for(i in 2:length(states)) {
+      key <- paste0("state", states[i])
+      coef_map[[key]] <- states[i]
+    }
+  }
+  
+  # Add years (skip first - it's the baseline)
+  if(length(years) > 1) {
+    for(i in 2:length(years)) {
+      key <- paste0("purchase_year", years[i])
+      coef_map[[key]] <- paste("Purchase year:", years[i])
+    }
+  }
+  
+  return(coef_map)
+}
+
+## regression analysis #####
+regression_analysis_formatted <- function(data, bus_type_filter, sci_digits = 2) {
+  
+  # Filter and prepare data
+  filtered_data <- data %>% 
+    filter(bus_type == bus_type_filter) %>%
+    mutate(
+      bus_type = factor(bus_type),
+      bus_manufacturer = factor(bus_manufacturer),
+      state = factor(state),
+      purchase_year = factor(purchase_year)
+    )
+  
+  # Check if we have enough data
+  if(nrow(filtered_data) < 10) {
+    return(list(
+      html = paste0("<div style='padding: 20px;'><h4>Insufficient Data</h4><p>Need at least 10 observations for regression analysis. Current data has only <strong>", nrow(filtered_data), "</strong> observations for ", bus_type_filter, ".</p></div>"),
+      error = TRUE
+    ))
+  }
+  
+  # Fit models
+  tryCatch({
+    m1 <- filtered_data %>% lm(formula = base_price ~ bus_manufacturer) 
+    m2 <- filtered_data %>% lm(formula = base_price ~ bus_manufacturer + state) 
+    m3 <- filtered_data %>% lm(formula = base_price ~ bus_manufacturer + state + purchase_year)
+    
+    # Get baseline levels
+    baseline_manuf <- levels(filtered_data$bus_manufacturer)[1]
+    baseline_state <- levels(filtered_data$state)[1]
+    baseline_year <- levels(filtered_data$purchase_year)[1]
+    
+    # Strip standard errors
+    mods <- lapply(list(m1, m2, m3), strip_se)
+    
+    # Create TWO temporary files
+    temp_input <- tempfile(fileext = ".html")
+    temp_output <- tempfile(fileext = ".html")
+    
+    # Generate coefficient map dynamically
+    coef_map <- create_coef_map(filtered_data)
+    
+    # Generate initial HTML table
+    htmlreg(
+      mods,
+      bold = 0.05, 
+      include.fstat = TRUE,
+      file = temp_input,
+      custom.model.names = c("Model 1", "Model 2", "Model 3"),
+      custom.coef.map = coef_map,
+      custom.note = "Statistical Significance: *** p < 0.001; ** p < 0.01; * p < 0.05."
+    )
+    
+    # Create custom note with baseline info
+    note_text <- paste(
+      "Statistical Significance: *** p < 0.001; ** p < 0.01; * p < 0.05.",
+      baseline_manuf, "is the baseline manufacturer,", 
+      baseline_state, "is the baseline state, and", 
+      baseline_year, "is the baseline year.",
+      "Purchase year is treated as a categorical variable."
+    )
+    
+    # Apply scientific notation formatting
+    format_htmlreg(temp_input, temp_output, sci_digits, note_text)
+    
+    # Read the formatted HTML
+    html_content <- readLines(temp_output, warn = FALSE)
+    html_string <- paste(html_content, collapse = "\n")
+    
+    # Clean up both temp files
+    unlink(temp_input)
+    unlink(temp_output)
+    
+    return(list(
+      html = html_string,
+      error = FALSE,
+      n_obs = nrow(filtered_data)
+    ))
+    
+  }, error = function(e) {
+    return(list(
+      html = paste0("<div style='padding: 20px;'><h4>Error</h4><p>Error running regression analysis: ", e$message, "</p></div>"),
+      error = TRUE
+    ))
+  })
+}
