@@ -5,7 +5,6 @@ library(shiny)
 library(bslib)
 library(readr) # read_csv
 library(DT) # interactive data table
-library(xml2)
 
 source("dashboard_funcs.R")
 

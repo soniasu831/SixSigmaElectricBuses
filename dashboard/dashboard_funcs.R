@@ -424,25 +424,17 @@ run_grouped_anova <- function(df, group_by, factor_col, response_col = "base_pri
 
 # %% regression analysis functions #####
 
-## strip_se() #####
-# helper function to remove se from htmlreg()
-strip_se <- function(m) {
-  e <- texreg::extract(m)
-  e@se <- rep(NA_real_, length(e@se))  # NA -> nothing printed
-  e
-}
-
 ## create_coef_map #####
-# Regression analysis function for dynamic HTML generation 
+# Regression analysis function for dynamic HTML generation
 create_coef_map <- function(data) {
   # Get unique levels for each factor
   manufacturers <- levels(data$bus_manufacturer)
   states <- levels(data$state)
   years <- levels(data$purchase_year)
-  
+
   # Start with intercept
   coef_map <- list("(Intercept)" = "Intercept")
-  
+
   # Add manufacturers (skip first - it's the baseline)
   if(length(manufacturers) > 1) {
     for(i in 2:length(manufacturers)) {
@@ -450,7 +442,7 @@ create_coef_map <- function(data) {
       coef_map[[key]] <- manufacturers[i]
     }
   }
-  
+
   # Add states (skip first - it's the baseline)
   if(length(states) > 1) {
     for(i in 2:length(states)) {
@@ -458,7 +450,7 @@ create_coef_map <- function(data) {
       coef_map[[key]] <- states[i]
     }
   }
-  
+
   # Add years (skip first - it's the baseline)
   if(length(years) > 1) {
     for(i in 2:length(years)) {
@@ -466,15 +458,134 @@ create_coef_map <- function(data) {
       coef_map[[key]] <- paste("Purchase year:", years[i])
     }
   }
-  
+
   return(coef_map)
+}
+
+## format_coef #####
+# Helper function to format coefficient with significance stars
+format_coef <- function(coef_val, p_val, sci_digits = 2) {
+  if (is.na(coef_val)) return("")
+
+  # Format as scientific notation
+  formatted <- formatC(coef_val, format = "e", digits = sci_digits)
+
+  # Add significance stars
+  stars <- ""
+  if (!is.na(p_val)) {
+    if (p_val < 0.001) stars <- "***"
+    else if (p_val < 0.01) stars <- "**"
+    else if (p_val < 0.05) stars <- "*"
+  }
+
+  # Bold if significant
+  if (stars != "") {
+    return(paste0("<b>", formatted, "</b>", stars))
+  }
+  return(formatted)
+}
+
+## build_regression_html #####
+# Build HTML table for regression models without texreg
+build_regression_html <- function(models, model_names, coef_map, note_text, sci_digits = 2) {
+
+  # Extract summaries
+  summaries <- lapply(models, summary)
+
+  # Get all coefficient names across all models
+  all_coefs <- unique(unlist(lapply(summaries, function(s) rownames(s$coefficients))))
+
+  # Map coefficient names to display names
+  display_names <- sapply(all_coefs, function(x) {
+    if (x %in% names(coef_map)) coef_map[[x]] else x
+  })
+
+  # Start building HTML
+  html <- '<table class="texreg" style="border-collapse: collapse; border: none;">\n'
+
+  # Header row
+  html <- paste0(html, '<tr>\n<th style="border-top: 2px solid black; padding: 5px;"></th>\n')
+  for (name in model_names) {
+    html <- paste0(html, '<th style="border-top: 2px solid black; padding: 5px; text-align: center;">', name, '</th>\n')
+  }
+  html <- paste0(html, '</tr>\n')
+
+  # Separator
+  html <- paste0(html, '<tr><td colspan="', length(model_names) + 1, '" style="border-bottom: 1px solid black;"></td></tr>\n')
+
+  # Coefficient rows
+  for (i in seq_along(all_coefs)) {
+    coef_name <- all_coefs[i]
+    display_name <- display_names[i]
+
+    html <- paste0(html, '<tr>\n<td style="padding: 5px;">', display_name, '</td>\n')
+
+    for (s in summaries) {
+      coefs <- s$coefficients
+      if (coef_name %in% rownames(coefs)) {
+        coef_val <- coefs[coef_name, "Estimate"]
+        p_val <- coefs[coef_name, "Pr(>|t|)"]
+        formatted <- format_coef(coef_val, p_val, sci_digits)
+        html <- paste0(html, '<td style="padding: 5px; text-align: center;">', formatted, '</td>\n')
+      } else {
+        html <- paste0(html, '<td style="padding: 5px; text-align: center;"></td>\n')
+      }
+    }
+    html <- paste0(html, '</tr>\n')
+  }
+
+  # Separator before summary stats
+  html <- paste0(html, '<tr><td colspan="', length(model_names) + 1, '" style="border-top: 1px solid black;"></td></tr>\n')
+
+  # R-squared row
+  html <- paste0(html, '<tr>\n<td style="padding: 5px;">R<sup>2</sup></td>\n')
+  for (s in summaries) {
+    html <- paste0(html, '<td style="padding: 5px; text-align: center;">', round(s$r.squared, 3), '</td>\n')
+  }
+  html <- paste0(html, '</tr>\n')
+
+  # Adjusted R-squared row
+  html <- paste0(html, '<tr>\n<td style="padding: 5px;">Adj. R<sup>2</sup></td>\n')
+  for (s in summaries) {
+    html <- paste0(html, '<td style="padding: 5px; text-align: center;">', round(s$adj.r.squared, 3), '</td>\n')
+  }
+  html <- paste0(html, '</tr>\n')
+
+  # F-statistic row
+  html <- paste0(html, '<tr>\n<td style="padding: 5px;">F Statistic</td>\n')
+  for (s in summaries) {
+    f_stat <- s$fstatistic
+    if (!is.null(f_stat)) {
+      html <- paste0(html, '<td style="padding: 5px; text-align: center;">',
+                     round(f_stat[1], 2), ' (df = ', f_stat[2], ', ', f_stat[3], ')</td>\n')
+    } else {
+      html <- paste0(html, '<td style="padding: 5px; text-align: center;"></td>\n')
+    }
+  }
+  html <- paste0(html, '</tr>\n')
+
+  # Number of observations row
+  html <- paste0(html, '<tr>\n<td style="padding: 5px;">Num. obs.</td>\n')
+  for (m in models) {
+    html <- paste0(html, '<td style="padding: 5px; text-align: center;">', length(m$fitted.values), '</td>\n')
+  }
+  html <- paste0(html, '</tr>\n')
+
+  # Close table
+  html <- paste0(html, '<tr><td colspan="', length(model_names) + 1, '" style="border-bottom: 2px solid black;"></td></tr>\n')
+  html <- paste0(html, '</table>\n')
+
+  # Add note
+  html <- paste0(html, '<p style="margin-top: 0.6em; font-size: 0.9em;">', note_text, '</p>\n')
+
+  return(html)
 }
 
 ## regression analysis #####
 regression_analysis_formatted <- function(data, bus_type_filter, sci_digits = 2) {
-  
+
   # Filter and prepare data
-  filtered_data <- data %>% 
+  filtered_data <- data %>%
     filter(bus_type == bus_type_filter) %>%
     mutate(
       bus_type = factor(bus_type),
@@ -482,7 +593,7 @@ regression_analysis_formatted <- function(data, bus_type_filter, sci_digits = 2)
       state = factor(state),
       purchase_year = factor(purchase_year)
     )
-  
+
   # Check if we have enough data
   if(nrow(filtered_data) < 10) {
     return(list(
@@ -490,65 +601,45 @@ regression_analysis_formatted <- function(data, bus_type_filter, sci_digits = 2)
       error = TRUE
     ))
   }
-  
+
   # Fit models
   tryCatch({
-    m1 <- filtered_data %>% lm(formula = base_price ~ bus_manufacturer) 
-    m2 <- filtered_data %>% lm(formula = base_price ~ bus_manufacturer + state) 
+    m1 <- filtered_data %>% lm(formula = base_price ~ bus_manufacturer)
+    m2 <- filtered_data %>% lm(formula = base_price ~ bus_manufacturer + state)
     m3 <- filtered_data %>% lm(formula = base_price ~ bus_manufacturer + state + purchase_year)
-    
+
     # Get baseline levels
     baseline_manuf <- levels(filtered_data$bus_manufacturer)[1]
     baseline_state <- levels(filtered_data$state)[1]
     baseline_year <- levels(filtered_data$purchase_year)[1]
-    
-    # Strip standard errors
-    mods <- lapply(list(m1, m2, m3), strip_se)
-    
-    # Create TWO temporary files
-    temp_input <- tempfile(fileext = ".html")
-    temp_output <- tempfile(fileext = ".html")
-    
+
     # Generate coefficient map dynamically
     coef_map <- create_coef_map(filtered_data)
-    
-    # Generate initial HTML table
-    htmlreg(
-      mods,
-      bold = 0.05, 
-      include.fstat = TRUE,
-      file = temp_input,
-      custom.model.names = c("Model 1", "Model 2", "Model 3"),
-      custom.coef.map = coef_map,
-      custom.note = "Statistical Significance: *** p < 0.001; ** p < 0.01; * p < 0.05."
-    )
-    
+
     # Create custom note with baseline info
     note_text <- paste(
       "Statistical Significance: *** p < 0.001; ** p < 0.01; * p < 0.05.",
-      baseline_manuf, "is the baseline manufacturer,", 
-      baseline_state, "is the baseline state, and", 
+      baseline_manuf, "is the baseline manufacturer,",
+      baseline_state, "is the baseline state, and",
       baseline_year, "is the baseline year.",
       "Purchase year is treated as a categorical variable."
     )
-    
-    # Apply scientific notation formatting
-    format_htmlreg(temp_input, temp_output, sci_digits, note_text)
-    
-    # Read the formatted HTML
-    html_content <- readLines(temp_output, warn = FALSE)
-    html_string <- paste(html_content, collapse = "\n")
-    
-    # Clean up both temp files
-    unlink(temp_input)
-    unlink(temp_output)
-    
+
+    # Build HTML table
+    html_string <- build_regression_html(
+      models = list(m1, m2, m3),
+      model_names = c("Model 1", "Model 2", "Model 3"),
+      coef_map = coef_map,
+      note_text = note_text,
+      sci_digits = sci_digits
+    )
+
     return(list(
       html = html_string,
       error = FALSE,
       n_obs = nrow(filtered_data)
     ))
-    
+
   }, error = function(e) {
     return(list(
       html = paste0("<div style='padding: 20px;'><h4>Error</h4><p>Error running regression analysis: ", e$message, "</p></div>"),
