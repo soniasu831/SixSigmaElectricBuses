@@ -551,18 +551,18 @@ build_regression_html <- function(models, model_names, coef_map, note_text, sci_
   }
   html <- paste0(html, '</tr>\n')
 
-  # F-statistic row
-  html <- paste0(html, '<tr>\n<td style="padding: 5px;">F Statistic</td>\n')
-  for (s in summaries) {
-    f_stat <- s$fstatistic
-    if (!is.null(f_stat)) {
-      html <- paste0(html, '<td style="padding: 5px; text-align: center;">',
-                     round(f_stat[1], 2), ' (df = ', f_stat[2], ', ', f_stat[3], ')</td>\n')
-    } else {
-      html <- paste0(html, '<td style="padding: 5px; text-align: center;"></td>\n')
-    }
-  }
-  html <- paste0(html, '</tr>\n')
+  # # F-statistic row
+  # html <- paste0(html, '<tr>\n<td style="padding: 5px;">F Statistic</td>\n')
+  # for (s in summaries) {
+  #   f_stat <- s$fstatistic
+  #   if (!is.null(f_stat)) {
+  #     html <- paste0(html, '<td style="padding: 5px; text-align: center;">',
+  #                    round(f_stat[1], 2), ' (df = ', f_stat[2], ', ', f_stat[3], ')</td>\n')
+  #   } else {
+  #     html <- paste0(html, '<td style="padding: 5px; text-align: center;"></td>\n')
+  #   }
+  # }
+  # html <- paste0(html, '</tr>\n')
 
   # Number of observations row
   html <- paste0(html, '<tr>\n<td style="padding: 5px;">Num. obs.</td>\n')
