@@ -24,8 +24,8 @@ footer <- tags$footer(
   HTML(
     paste(
       "Created by Louise Smith, Sonia Su, Karishni Veerabahu Pillai, Raveena Kumari, and Siva Selvam",
-      "© 2025",
-      "Last updated: January 22, 2026",
+      "© 2026",
+      "Last updated: January 27, 2026",
       sep = " • "
     )
   )
